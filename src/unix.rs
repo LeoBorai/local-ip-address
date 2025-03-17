@@ -73,9 +73,7 @@ impl AfInetInfo {
 
     #[allow(dead_code)]
     pub(crate) fn is_local_network(&self) -> bool {
-        self.iname.contains("eth")
-            || self.iname.contains("wlan")
-            || self.iname.contains("en")
+        self.iname.contains("eth") || self.iname.contains("wlan") || self.iname.contains("en")
     }
 }
 
