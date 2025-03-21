@@ -47,8 +47,33 @@ pub(crate) struct AfInetInfo {
 
 impl AfInetInfo {
     /// Determines if an interface is used for mobile_data
+    /// https://chromium.googlesource.com/external/webrtc/+/branch-heads/m73/rtc_base/network.cc#205
+    #[cfg(target_os = "android")]
     pub(crate) fn is_mobile_data(&self) -> bool {
         self.iname.contains("rmnet_data")
+    }
+
+    #[cfg(target_os = "ios")]
+    pub(crate) fn is_mobile_data(&self) -> bool {
+        self.iname.contains("pdp_ip")
+    }
+
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "windows",
+        target_os = "macos",
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "dragonfly",
+    ))]
+    pub(crate) fn is_mobile_data(&self) -> bool {
+        false
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn is_local_network(&self) -> bool {
+        self.iname.contains("eth") || self.iname.contains("wlan") || self.iname.contains("en")
     }
 }
 
