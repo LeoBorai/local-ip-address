@@ -323,7 +323,7 @@ impl LinkedListIterator for IP_ADAPTER_UNICAST_ADDRESS_LH {
     }
 }
 
-impl<'linked_list, T: LinkedListIterator> LinkedListIter<'linked_list, T> {
+impl<T: LinkedListIterator> LinkedListIter<T> {
     /// Creates a new [LinkedListIter] from a pointer to the head of the linked list.
     pub fn new(head: Option<NonNull<T>>) -> Self {
         Self {
