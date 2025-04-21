@@ -281,7 +281,8 @@ trait LinkedListIterator {
     fn next(&self) -> Option<NonNull<Self>>;
 }
 
-/// Adaptor to convert a linked list to an iterator of references.
+/// Adaptor to convert a linked list to an iterator of references
+#[allow(needless-lifetimes)]
 struct LinkedListIter<'linked_list, T: LinkedListIterator> {
     node: Option<NonNull<T>>,
     __phantom_lifetime: PhantomData<&'linked_list T>,
