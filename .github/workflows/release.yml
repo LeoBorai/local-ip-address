@@ -22,12 +22,11 @@ jobs:
     name: "Runs cargo publish --dry-run"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: publish crate
         run: cargo publish --dry-run
@@ -37,26 +36,26 @@ jobs:
     needs: publish-dry-run
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Install `cargo-edit`
-        run: cargo install cargo-edit
-      
+      - name: Setup Cargo Binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install Rust Binaries
+        run: |
+          cargo binstall -y --force cargo-edit
+
       - id: cargo-set-version
         name: Set Version
         run: cargo set-version --bump ${{ inputs.version }}
 
       - name: Set Crate Version as Environment Variable
         run: |
-          CARGO_TOML_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/[\"]/, "", $2); printf("%s",$2) }' Cargo.toml)
+          CARGO_TOML_VERSION=$(awk -F ' = ' '$1 ~ /version/ { gsub(/[\"]/, "", $2); printf("%s", $2); exit }' Cargo.toml)
           echo "CRATE_VERSION=$CARGO_TOML_VERSION" >> $GITHUB_ENV
 
       - name: Create Commit

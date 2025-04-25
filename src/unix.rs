@@ -159,20 +159,24 @@ pub(crate) fn list_afinet_netifas_info() -> Result<Vec<AfInetInfo>, Error> {
 
 /// Retrieves the name of a interface address
 unsafe fn get_ifa_name(ifa: *mut *mut ifaddrs) -> Result<String, Error> {
-    let str = (*(*ifa)).ifa_name;
-    let len = strlen(str as *const c_char);
-    let slice = std::slice::from_raw_parts(str as *mut u8, len);
-    match String::from_utf8(slice.to_vec()) {
-        Ok(s) => Ok(s),
-        Err(e) => Err(Error::StrategyError(format!(
-            "Failed to retrieve interface name. The name is not a valid UTF-8 string. {}",
-            e
-        ))),
+    unsafe {
+        let str = (*(*ifa)).ifa_name;
+        let len = strlen(str as *const c_char);
+        let slice = std::slice::from_raw_parts(str as *mut u8, len);
+        match String::from_utf8(slice.to_vec()) {
+            Ok(s) => Ok(s),
+            Err(e) => Err(Error::StrategyError(format!(
+                "Failed to retrieve interface name. The name is not a valid UTF-8 string. {}",
+                e
+            ))),
+        }
     }
 }
 
 /// Determines if an interface address is a loopback address
 unsafe fn is_loopback_addr(ifa: *mut *mut ifaddrs) -> bool {
-    let iflags = (*(*ifa)).ifa_flags as i32;
-    (iflags & IFF_LOOPBACK) != 0
+    unsafe {
+        let iflags = (*(*ifa)).ifa_flags as i32;
+        (iflags & IFF_LOOPBACK) != 0
+    }
 }
