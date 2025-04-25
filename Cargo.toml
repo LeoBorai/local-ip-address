@@ -1,14 +1,14 @@
 [package]
 name = "local-ip-address"
 description = "Retrieve system's local IP address and Network Interfaces/Adapters on Linux, macOS and Windows."
-repository = "https://github.com/EstebanBorai/local-ip-address"
+repository = "https://github.com/LeoBorai/local-ip-address"
 categories = ["web-programming", "network-programming"]
-homepage = "https://github.com/EstebanBorai/local-ip-address"
+homepage = "https://github.com/LeoBorai/local-ip-address"
 keywords = ["local", "ip", "address", "web", "network"]
 license = "MIT OR Apache-2.0"
 version = "0.6.3"
-authors = ["Esteban Borai <estebanborai@gmail.com>"]
-edition = "2021"
+authors = ["Leo Borai <estebanborai@gmail.com>"]
+edition = "2024"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

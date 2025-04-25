@@ -281,7 +281,7 @@ trait LinkedListIterator {
     fn next(&self) -> Option<NonNull<Self>>;
 }
 
-/// Adaptor to convert a linked list to an iterator of references.
+/// Adapter to convert a linked list to an iterator of references.
 struct LinkedListIter<'linked_list, T: LinkedListIterator> {
     node: Option<NonNull<T>>,
     __phantom_lifetime: PhantomData<&'linked_list T>,
@@ -323,7 +323,7 @@ impl LinkedListIterator for IP_ADAPTER_UNICAST_ADDRESS_LH {
     }
 }
 
-impl<'linked_list, T: LinkedListIterator> LinkedListIter<'linked_list, T> {
+impl<T: LinkedListIterator> LinkedListIter<'_, T> {
     /// Creates a new [LinkedListIter] from a pointer to the head of the linked list.
     pub fn new(head: Option<NonNull<T>>) -> Self {
         Self {

@@ -10,9 +10,9 @@
 
   [![Crates.io](https://img.shields.io/crates/v/local-ip-address.svg)](https://crates.io/crates/local-ip-address)
   [![Documentation](https://docs.rs/local-ip-address/badge.svg)](https://docs.rs/local-ip-address)
-  ![Build](https://github.com/EstebanBorai/local-ip-address/workflows/build/badge.svg)
-  ![Clippy](https://github.com/EstebanBorai/local-ip-address/workflows/clippy/badge.svg)
-  ![Formatter](https://github.com/EstebanBorai/local-ip-address/workflows/fmt/badge.svg)
+  ![Build](https://github.com/LeoBorai/local-ip-address/workflows/build/badge.svg)
+  ![Clippy](https://github.com/LeoBorai/local-ip-address/workflows/clippy/badge.svg)
+  ![Formatter](https://github.com/LeoBorai/local-ip-address/workflows/fmt/badge.svg)
 
 </div>
 
@@ -57,16 +57,16 @@ Windows | Consumes Win32 API's to retrieve the network adapters table
 ## Operating System Support
 
 Current supported platforms include:
-  - Linux (requires at least [v0.1.0](https://github.com/EstebanBorai/local-ip-address/releases/tag/v0.1.0));
-  - macOS (requires at least [v0.1.0](https://github.com/EstebanBorai/local-ip-address/releases/tag/v0.1.0));
-  - Windows (requires at least [v0.3.0](https://github.com/EstebanBorai/local-ip-address/releases/tag/v0.3.0));
-  - Other BSD-based (requires at least [v0.5.0](https://github.com/EstebanBorai/local-ip-address/releases/tag/v0.5.0)); including:
+  - Linux (requires at least [v0.1.0](https://github.com/LeoBorai/local-ip-address/releases/tag/v0.1.0));
+  - macOS (requires at least [v0.1.0](https://github.com/LeoBorai/local-ip-address/releases/tag/v0.1.0));
+  - Windows (requires at least [v0.3.0](https://github.com/LeoBorai/local-ip-address/releases/tag/v0.3.0));
+  - Other BSD-based (requires at least [v0.5.0](https://github.com/LeoBorai/local-ip-address/releases/tag/v0.5.0)); including:
     - FreeBSD
     - OpenBSD
     - NetBSD
     - DragonFly
 
-Please note that we only test the BSD implementation of this on macOS and FreeBSD, under the assumption that other BSD-based systems will behave similarly.  If you have any complications using this library on the other BSD-based, please create an [issue](https://github.com/EstebanBorai/local-ip-address/issues).
+Please note that we only test the BSD implementation of this on macOS and FreeBSD, under the assumption that other BSD-based systems will behave similarly.  If you have any complications using this library on the other BSD-based, please create an [issue](https://github.com/LeoBorai/local-ip-address/issues).
 
 ## Release
 

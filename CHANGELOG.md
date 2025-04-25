@@ -36,7 +36,7 @@
 
 #### Fixes
 
-* Fixed compilation failure on Raspberry-Pi flavor Linux [Issue #10](https://github.com/EstebanBorai/local-ip-address/issues/10)
+* Fixed compilation failure on Raspberry-Pi flavor Linux [Issue #10](https://github.com/LeoBorai/local-ip-address/issues/10)
 
 <a name="v0.4.0"></a>
 ## v0.4.0 (2021-06-29)
