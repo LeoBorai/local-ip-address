@@ -5,7 +5,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use neli::attr::Attribute;
 use neli::consts::nl::{NlmF};
 use neli::consts::socket::NlFamily;
-use neli::consts::rtnl::{Ifa, RtAddrFamily, RtScope, Rtm, RtmF, Rta, Ifla};
+use neli::consts::rtnl::{Ifa, Ifla, RtAddrFamily, RtScope, RtTable, Rta, Rtm, RtmF, Rtn, Rtprot};
 use neli::err::RouterError;
 use neli::nl::{NlPayload, Nlmsghdr};
 use neli::router::synchronous::NlRouter;
@@ -180,7 +180,15 @@ fn local_ip_impl_route(family: RtAddrFamily, netlink_socket: &NlRouter) -> Resul
         )))?,
     };
 
-    let mut ifroutemsg = RtmsgBuilder::default().rtm_family(family);
+    let mut ifroutemsg = RtmsgBuilder::default()
+        .rtm_family(family)
+        .rtm_src_len(0)
+        .rtm_dst_len(0)
+        .rtm_tos(0)
+        .rtm_table(RtTable::Unspec)
+        .rtm_protocol(Rtprot::Unspec)
+        .rtm_scope(RtScope::Universe)
+        .rtm_type(Rtn::Unspec);
 
     let route_attr = route_attr.map_err(|err| Error::StrategyError(err.to_string()))?;
     let mut route_payload = RtBuffer::new();
@@ -368,6 +376,7 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
     // First get list of interfaces via RTM_GETLINK
 
     let ifinfomsg = IfinfomsgBuilder::default()
+        .ifi_family(RtAddrFamily::Unspecified)
         .build()
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
@@ -392,9 +401,7 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
         }
 
         if *header.nl_type() != Rtm::Newlink {
-            return Err(Error::StrategyError(String::from(
-                "The Netlink header type is not the expected",
-            )));
+            continue;
         }
 
         let p = header.get_payload().ok_or_else(|| {
@@ -415,6 +422,10 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
     // Secondly get addresses of interfaces via RTM_GETADDR
 
     let ifaddrmsg = IfaddrmsgBuilder::default()
+        .ifa_family(RtAddrFamily::Unspecified)
+        .ifa_prefixlen(0)
+        .ifa_scope(RtScope::Universe)
+        .ifa_index(0)
         .build()
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
@@ -439,9 +450,7 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
         }
 
         if *header.nl_type() != Rtm::Newaddr {
-            return Err(Error::StrategyError(String::from(
-                "The Netlink header type is not the expected",
-            )));
+            continue;
         }
 
         let p = header.get_payload().ok_or_else(|| {
