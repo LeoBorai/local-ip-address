@@ -3,24 +3,26 @@ use std::ffi::CStr;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use neli::attr::Attribute;
-use neli::consts::nl::{NlmF, NlmFFlags};
+use neli::consts::nl::{NlmF};
 use neli::consts::socket::NlFamily;
 use neli::consts::rtnl::{
-    Ifa, IfaFFlags, RtAddrFamily, RtScope, Rtm, RtTable, Rtprot, Rtn, RtmFFlags, RtmF, Rta, Ifla,
-    IffFlags, Arphrd,
+    Ifa, RtAddrFamily, RtScope, Rtm, RtTable, Rtprot, Rtn, RtmF, Rta, Ifla, Arphrd,
 };
-use neli::nl::{NlPayload, Nlmsghdr};
-use neli::rtnl::{Ifaddrmsg, Ifinfomsg, Rtattr, Rtmsg};
+use neli::nl::{NlPayload, Nlmsghdr, NlmsghdrBuilder};
+use neli::rtnl::{
+    Ifaddrmsg, IfaddrmsgBuilder, Ifinfomsg, IfinfomsgBuilder, Rtattr, RtattrBuilder, Rtmsg,
+    RtmsgBuilder,
+};
 
-use neli::socket::NlSocketHandle;
+use neli::socket::synchronous::NlSocketHandle;
 use neli::types::RtBuffer;
 use neli::consts::rtnl::RtAddrFamily::{Inet, Inet6};
-use neli::err::NlError::Nlmsgerr;
+use neli::utils::Groups;
 
 use crate::Error;
 
 #[cfg(target_env = "gnu")]
-const RTM_FLAGS_LOOKUP: &[RtmF] = &[RtmF::LookupTable];
+const RTM_FLAGS_LOOKUP: &[RtmF] = &[RtmF::LOOKUPTABLE];
 #[cfg(not(target_env = "gnu"))]
 const RTM_FLAGS_LOOKUP: &[RtmF] = &[];
 
@@ -40,30 +42,25 @@ pub fn local_broadcast_ip() -> Result<IpAddr, Error> {
 }
 
 fn local_broadcast_impl(family: RtAddrFamily) -> Result<IpAddr, Error> {
-    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, &[])
+    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, Groups::empty())
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     let pref_ip = local_ip()?;
 
-    let ifaddrmsg = Ifaddrmsg {
-        ifa_family: family,
-        ifa_prefixlen: 0,
-        ifa_flags: IfaFFlags::empty(),
-        ifa_scope: 0,
-        ifa_index: 0,
-        rtattrs: RtBuffer::new(),
-    };
-    let netlink_message = Nlmsghdr::new(
-        None,
-        Rtm::Getaddr,
-        NlmFFlags::new(&[NlmF::Request, NlmF::Root]),
-        None,
-        None,
-        NlPayload::Payload(ifaddrmsg),
-    );
+    let ifaddrmsg = IfaddrmsgBuilder::default()
+        .ifa_family(family)
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
+
+    let netlink_message = NlmsghdrBuilder::default()
+        .nl_type(Rtm::Getaddr)
+        .nl_flags(NlmF::REQUEST | NlmF::ROOT)
+        .nl_payload(NlPayload::Payload(ifaddrmsg))
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     netlink_socket
-        .send(netlink_message)
+        .send(&netlink_message)
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     let mut broadcast_ip = None;
@@ -74,11 +71,11 @@ fn local_broadcast_impl(family: RtAddrFamily) -> Result<IpAddr, Error> {
             ))
         })?;
 
-        if let NlPayload::Empty = header.nl_payload {
+        if let NlPayload::Empty = header.nl_payload() {
             continue;
         }
 
-        if header.nl_type != Rtm::Newaddr {
+        if header.nl_type() != Rtm::Newaddr {
             return Err(Error::StrategyError(String::from(
                 "The Netlink header type is not the expected",
             )));
@@ -155,7 +152,7 @@ fn local_broadcast_impl(family: RtAddrFamily) -> Result<IpAddr, Error> {
 }
 
 fn local_ip_impl(family: RtAddrFamily) -> Result<IpAddr, Error> {
-    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, &[])
+    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, Groups::empty())
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     match local_ip_impl_route(family, &mut netlink_socket) {
@@ -173,12 +170,18 @@ fn local_ip_impl_route(
         Inet => {
             let dstip = Ipv4Addr::new(192, 0, 2, 0); // reserved external IP
             let raw_dstip = u32::from(dstip).to_be();
-            Rtattr::new(None, Rta::Dst, raw_dstip)
+            RtattrBuilder::default()
+                .rta_type(Rta::Dst)
+                .rta_payload(raw_dstip)
+                .build()
         }
         Inet6 => {
             let dstip = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0); // reserved external IP
             let raw_dstip = u128::from(dstip).to_be();
-            Rtattr::new(None, Rta::Dst, raw_dstip)
+            RtattrBuilder::default()
+                .rta_type(Rta::Dst)
+                .rta_payload(raw_dstip)
+                .build()
         }
         _ => Err(Error::StrategyError(format!(
             "Invalid address family given: {:#?}",
@@ -186,32 +189,31 @@ fn local_ip_impl_route(
         )))?,
     };
 
+    let mut ifroutemsg = RtmsgBuilder::default().rtm_family(family);
+
     let route_attr = route_attr.map_err(|err| Error::StrategyError(err.to_string()))?;
     let mut route_payload = RtBuffer::new();
     route_payload.push(route_attr);
-    let ifroutemsg = Rtmsg {
-        rtm_family: family,
-        rtm_dst_len: 0,
-        rtm_src_len: 0,
-        rtm_tos: 0,
-        rtm_table: RtTable::Unspec,
-        rtm_protocol: Rtprot::Unspec,
-        rtm_scope: RtScope::Universe,
-        rtm_type: Rtn::Unspec,
-        rtm_flags: RtmFFlags::new(RTM_FLAGS_LOOKUP),
-        rtattrs: route_payload,
-    };
-    let netlink_message = Nlmsghdr::new(
-        None,
-        Rtm::Getroute,
-        NlmFFlags::new(&[NlmF::Request]),
-        None,
-        None,
-        NlPayload::Payload(ifroutemsg),
-    );
+    ifroutemsg.rtattrs(route_payload);
+
+    let rtm_flags = RTM_FLAGS_LOOKUP.iter().cloned().reduce(|a, b| a | b);
+    if let Some(flags) = rtm_flags {
+        ifroutemsg = ifroutemsg.rtm_flags(flags);
+    }
+
+    let ifroutemsg = ifroutemsg
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
+
+    let netlink_message = NlmsghdrBuilder::default()
+        .nl_type(Rtm::Getroute)
+        .nl_flags(NlmF::REQUEST)
+        .nl_payload(NlPayload::Payload(ifroutemsg))
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     netlink_socket
-        .send(netlink_message)
+        .send(&netlink_message)
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     for response in netlink_socket.iter(false) {
@@ -226,11 +228,11 @@ fn local_ip_impl_route(
             ))
         })?;
 
-        if let NlPayload::Empty = header.nl_payload {
+        if let NlPayload::Empty = header.nl_payload() {
             continue;
         }
 
-        if header.nl_type != Rtm::Newroute {
+        if header.nl_type() != Rtm::Newroute {
             return Err(Error::StrategyError(String::from(
                 "The Netlink header type is not the expected",
             )));
@@ -284,25 +286,20 @@ fn local_ip_impl_addr(
     family: RtAddrFamily,
     netlink_socket: &mut NlSocketHandle,
 ) -> Result<IpAddr, Error> {
-    let ifaddrmsg = Ifaddrmsg {
-        ifa_family: family,
-        ifa_prefixlen: 0,
-        ifa_flags: IfaFFlags::empty(),
-        ifa_scope: 0,
-        ifa_index: 0,
-        rtattrs: RtBuffer::new(),
-    };
-    let netlink_message = Nlmsghdr::new(
-        None,
-        Rtm::Getaddr,
-        NlmFFlags::new(&[NlmF::Request, NlmF::Root]),
-        None,
-        None,
-        NlPayload::Payload(ifaddrmsg),
-    );
+    let ifaddrmsg = IfaddrmsgBuilder::default()
+        .ifa_family(family)
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
+
+    let netlink_message = NlmsghdrBuilder::default()
+        .nl_type(Rtm::Getaddr)
+        .nl_flags(NlmF::REQUEST | NlmF::ROOT)
+        .nl_payload(NlPayload::Payload(ifaddrmsg))
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     netlink_socket
-        .send(netlink_message)
+        .send(&netlink_message)
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     for response in netlink_socket.iter(false) {
@@ -312,11 +309,11 @@ fn local_ip_impl_addr(
             ))
         })?;
 
-        if let NlPayload::Empty = header.nl_payload {
+        if let NlPayload::Empty = header.nl_payload() {
             continue;
         }
 
-        if header.nl_type != Rtm::Newaddr {
+        if header.nl_type() != Rtm::Newaddr {
             return Err(Error::StrategyError(String::from(
                 "The Netlink header type is not the expected",
             )));
@@ -387,31 +384,24 @@ fn local_ip_impl_addr(
 /// }
 /// ```
 pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
-    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, &[])
+    let mut netlink_socket = NlSocketHandle::connect(NlFamily::Route, None, Groups::empty())
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     // First get list of interfaces via RTM_GETLINK
 
-    let ifinfomsg = Ifinfomsg::new(
-        RtAddrFamily::Unspecified,
-        Arphrd::from(0),
-        0,
-        IffFlags::empty(),
-        IffFlags::empty(),
-        RtBuffer::new(),
-    );
+    let ifinfomsg = IfinfomsgBuilder::default()
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
-    let netlink_message = Nlmsghdr::new(
-        None,
-        Rtm::Getlink,
-        NlmFFlags::new(&[NlmF::Request, NlmF::Dump]),
-        None,
-        None,
-        NlPayload::Payload(ifinfomsg),
-    );
+    let netlink_message = NlmsghdrBuilder::default()
+        .nl_type(Rtm::Getlink)
+        .nl_flags(NlmF::REQUEST | NlmF::DUMP)
+        .nl_payload(NlPayload::Payload(ifinfomsg))
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     netlink_socket
-        .send(netlink_message)
+        .send(&netlink_message)
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     let mut if_indexes = HashMap::new();
@@ -423,11 +413,11 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
             ))
         })?;
 
-        if let NlPayload::Empty = header.nl_payload {
+        if let NlPayload::Empty = header.nl_payload() {
             continue;
         }
 
-        if header.nl_type != Rtm::Newlink {
+        if header.nl_type() != Rtm::Newlink {
             return Err(Error::StrategyError(String::from(
                 "The Netlink header type is not the expected",
             )));
@@ -450,25 +440,19 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
 
     // Secondly get addresses of interfaces via RTM_GETADDR
 
-    let ifaddrmsg = Ifaddrmsg {
-        ifa_family: RtAddrFamily::Unspecified,
-        ifa_prefixlen: 0,
-        ifa_flags: IfaFFlags::empty(),
-        ifa_scope: 0,
-        ifa_index: 0,
-        rtattrs: RtBuffer::new(),
-    };
-    let netlink_message = Nlmsghdr::new(
-        None,
-        Rtm::Getaddr,
-        NlmFFlags::new(&[NlmF::Request, NlmF::Dump]),
-        None,
-        None,
-        NlPayload::Payload(ifaddrmsg),
-    );
+    let ifaddrmsg = IfaddrmsgBuilder::default()
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
+
+    let netlink_message = NlmsghdrBuilder::default()
+        .nl_type(Rtm::Getaddr)
+        .nl_flags(NlmF::REQUEST | NlmF::DUMP)
+        .nl_payload(NlPayload::Payload(ifaddrmsg))
+        .build()
+        .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     netlink_socket
-        .send(netlink_message)
+        .send(&netlink_message)
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
     let mut interfaces = Vec::new();
@@ -480,11 +464,11 @@ pub fn list_afinet_netifas() -> Result<Vec<(String, IpAddr)>, Error> {
             ))
         })?;
 
-        if let NlPayload::Empty = header.nl_payload {
+        if let NlPayload::Empty = header.nl_payload() {
             continue;
         }
 
-        if header.nl_type != Rtm::Newaddr {
+        if header.nl_type() != Rtm::Newaddr {
             return Err(Error::StrategyError(String::from(
                 "The Netlink header type is not the expected",
             )));
