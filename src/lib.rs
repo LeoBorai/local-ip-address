@@ -263,8 +263,8 @@ mod tests {
     fn find_local_ip() {
         let my_local_ip = local_ip();
 
-        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
         println!("Linux 'local_ip': {:?}", my_local_ip);
+        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
     }
 
     #[test]
@@ -280,8 +280,8 @@ mod tests {
     fn find_local_ip() {
         let my_local_ip = local_ip();
 
-        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
         println!("Unix 'local_ip': {:?}", my_local_ip);
+        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
     }
 
     #[test]
@@ -289,8 +289,8 @@ mod tests {
     fn find_local_ip() {
         let my_local_ip = local_ip();
 
-        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
         println!("Windows 'local_ip': {:?}", my_local_ip);
+        assert!(matches!(my_local_ip, Ok(IpAddr::V4(_))));
     }
 
     #[test]
@@ -298,6 +298,7 @@ mod tests {
     fn find_network_interfaces() {
         let network_interfaces = list_afinet_netifas();
 
+        println!("Linux 'list_afinet_netifas': {:?}", network_interfaces);
         assert!(network_interfaces.is_ok());
         assert!(!network_interfaces.unwrap().is_empty());
     }
