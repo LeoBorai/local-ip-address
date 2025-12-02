@@ -10,7 +10,7 @@ use std::{
 
 use windows_sys::Win32::{
     Foundation::{
-        GetLastError, LocalFree, BOOL, ERROR_ADDRESS_NOT_ASSOCIATED, ERROR_BUFFER_OVERFLOW,
+        GetLastError, LocalFree, ERROR_ADDRESS_NOT_ASSOCIATED, ERROR_BUFFER_OVERFLOW,
         ERROR_INSUFFICIENT_BUFFER, ERROR_INVALID_PARAMETER, ERROR_NOT_ENOUGH_MEMORY,
         ERROR_NOT_SUPPORTED, ERROR_NO_DATA, ERROR_SUCCESS, WIN32_ERROR,
     },
@@ -25,6 +25,7 @@ use windows_sys::Win32::{
         FormatMessageW, FORMAT_MESSAGE_ALLOCATE_BUFFER, FORMAT_MESSAGE_FROM_SYSTEM,
     },
 };
+use windows_sys::core::BOOL;
 
 use crate::error::Error;
 
