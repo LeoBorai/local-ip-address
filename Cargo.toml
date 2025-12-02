@@ -20,10 +20,10 @@ thiserror = "2"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-neli = "0.6"
+neli = "0.7"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
-version = "0.59.0"
+version = "0.61.2"
 features = [
     "Win32_Foundation",
     "Win32_Networking_WinSock",
