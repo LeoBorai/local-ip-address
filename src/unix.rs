@@ -111,7 +111,8 @@ pub(crate) fn list_afinet_netifas_info() -> Result<Vec<AfInetInfo>, Error> {
                     // AF_INET IPv4 protocol implementation
                     AF_INET => {
                         let interface_address = ifa_addr;
-                        let socket_addr_v4: *mut sockaddr_in = interface_address as *mut sockaddr_in;
+                        let socket_addr_v4: *mut sockaddr_in =
+                            interface_address as *mut sockaddr_in;
                         let in_addr = (*socket_addr_v4).sin_addr;
                         let mut ip_addr = Ipv4Addr::from(in_addr.s_addr);
 
@@ -133,7 +134,8 @@ pub(crate) fn list_afinet_netifas_info() -> Result<Vec<AfInetInfo>, Error> {
                     // AF_INET6 IPv6 protocol implementation
                     AF_INET6 => {
                         let interface_address = ifa_addr;
-                        let socket_addr_v6: *mut sockaddr_in6 = interface_address as *mut sockaddr_in6;
+                        let socket_addr_v6: *mut sockaddr_in6 =
+                            interface_address as *mut sockaddr_in6;
                         let in6_addr = (*socket_addr_v6).sin6_addr;
                         let ip_addr = Ipv6Addr::from(in6_addr.s6_addr);
 
