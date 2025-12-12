@@ -106,43 +106,47 @@ pub(crate) fn list_afinet_netifas_info() -> Result<Vec<AfInetInfo>, Error> {
         loop {
             let ifa_addr = (**ifa).ifa_addr;
 
-            match (*ifa_addr).sa_family as i32 {
-                // AF_INET IPv4 protocol implementation
-                AF_INET => {
-                    let interface_address = ifa_addr;
-                    let socket_addr_v4: *mut sockaddr_in = interface_address as *mut sockaddr_in;
-                    let in_addr = (*socket_addr_v4).sin_addr;
-                    let mut ip_addr = Ipv4Addr::from(in_addr.s_addr);
+            if !ifa_addr.is_null() {
+                match (*ifa_addr).sa_family as i32 {
+                    // AF_INET IPv4 protocol implementation
+                    AF_INET => {
+                        let interface_address = ifa_addr;
+                        let socket_addr_v4: *mut sockaddr_in =
+                            interface_address as *mut sockaddr_in;
+                        let in_addr = (*socket_addr_v4).sin_addr;
+                        let mut ip_addr = Ipv4Addr::from(in_addr.s_addr);
 
-                    if cfg!(target_endian = "little") {
-                        // due to a difference on how bytes are arranged on a
-                        // single word of memory by the CPU, swap bytes based
-                        // on CPU endianness to avoid having twisted IP addresses
-                        //
-                        // refer: https://github.com/rust-lang/rust/issues/48819
-                        ip_addr = Ipv4Addr::from(in_addr.s_addr.swap_bytes());
+                        if cfg!(target_endian = "little") {
+                            // due to a difference on how bytes are arranged on a
+                            // single word of memory by the CPU, swap bytes based
+                            // on CPU endianness to avoid having twisted IP addresses
+                            //
+                            // refer: https://github.com/rust-lang/rust/issues/48819
+                            ip_addr = Ipv4Addr::from(in_addr.s_addr.swap_bytes());
+                        }
+
+                        interfaces.push(AfInetInfo {
+                            addr: IpAddr::V4(ip_addr),
+                            iname: get_ifa_name(ifa)?,
+                            is_loopback: is_loopback_addr(ifa),
+                        });
                     }
+                    // AF_INET6 IPv6 protocol implementation
+                    AF_INET6 => {
+                        let interface_address = ifa_addr;
+                        let socket_addr_v6: *mut sockaddr_in6 =
+                            interface_address as *mut sockaddr_in6;
+                        let in6_addr = (*socket_addr_v6).sin6_addr;
+                        let ip_addr = Ipv6Addr::from(in6_addr.s6_addr);
 
-                    interfaces.push(AfInetInfo {
-                        addr: IpAddr::V4(ip_addr),
-                        iname: get_ifa_name(ifa)?,
-                        is_loopback: is_loopback_addr(ifa),
-                    });
+                        interfaces.push(AfInetInfo {
+                            addr: IpAddr::V6(ip_addr),
+                            iname: get_ifa_name(ifa)?,
+                            is_loopback: is_loopback_addr(ifa),
+                        });
+                    }
+                    _ => {}
                 }
-                // AF_INET6 IPv6 protocol implementation
-                AF_INET6 => {
-                    let interface_address = ifa_addr;
-                    let socket_addr_v6: *mut sockaddr_in6 = interface_address as *mut sockaddr_in6;
-                    let in6_addr = (*socket_addr_v6).sin6_addr;
-                    let ip_addr = Ipv6Addr::from(in6_addr.s6_addr);
-
-                    interfaces.push(AfInetInfo {
-                        addr: IpAddr::V6(ip_addr),
-                        iname: get_ifa_name(ifa)?,
-                        is_loopback: is_loopback_addr(ifa),
-                    });
-                }
-                _ => {}
             }
 
             // Check if we are at the end of our network interface list
