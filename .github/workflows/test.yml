@@ -28,7 +28,7 @@ jobs:
           override: true
 
       - name: Cache .cargo and target
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo
