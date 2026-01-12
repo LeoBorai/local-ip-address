@@ -11,10 +11,7 @@ authors = ["Leo Borai <estebanborai@gmail.com>"]
 edition = "2021"
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-thiserror = "2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
