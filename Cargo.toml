@@ -17,7 +17,7 @@ readme = "README.md"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-neli = "0.7"
+neli = "0.7.4"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = "0.61.2"
