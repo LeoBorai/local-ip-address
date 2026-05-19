@@ -46,6 +46,9 @@ fn local_broadcast_impl(family: RtAddrFamily) -> Result<IpAddr, Error> {
 
     let ifaddrmsg = IfaddrmsgBuilder::default()
         .ifa_family(family)
+        .ifa_prefixlen(0)
+        .ifa_scope(RtScope::Universe)
+        .ifa_index(0)
         .build()
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
@@ -277,6 +280,9 @@ fn local_ip_impl_route(family: RtAddrFamily, netlink_socket: &NlRouter) -> Resul
 fn local_ip_impl_addr(family: RtAddrFamily, netlink_socket: &NlRouter) -> Result<IpAddr, Error> {
     let ifaddrmsg = IfaddrmsgBuilder::default()
         .ifa_family(family)
+        .ifa_prefixlen(0)
+        .ifa_scope(RtScope::Universe)
+        .ifa_index(0)
         .build()
         .map_err(|err| Error::StrategyError(err.to_string()))?;
 
